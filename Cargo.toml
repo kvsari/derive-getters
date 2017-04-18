@@ -1,7 +1,7 @@
 [package]
 name = "derive-getters"
-version = "0.0.0"
-authors = ["Stephan Luther <stephan@kvsari.org>"]
+version = "0.0.1"
+authors = ["Stephan Luther <kvsari@gmail.com>"]
 license = "MIT"
 
 [lib]
