@@ -9,31 +9,46 @@ extern crate syn;
 
 use proc_macro::TokenStream;
 
-/*
+use syn::{Body, VariantData};
+use quote::ToTokens;
+
 #[proc_macro_derive(Getters)]
 pub fn getters(input: TokenStream) -> TokenStream {
     let s = input.to_string();
     let ast = syn::parse_macro_input(&s).unwrap();
     let gen = impl_getters(&ast);
     gen.parse().unwrap()
-}*/
-
-#[proc_macro_derive(Testing)]
-pub fn getters(input: TokenStream) -> TokenStream {
-    let s = input.to_string();
-    let ast = syn::parse_macro_input(&s).unwrap();
-    let gen = impl_test(&ast);
-    gen.parse().unwrap()
 }
 
-fn impl_test(ast: &syn::MacroInput) -> quote::Tokens {
+fn impl_getters(ast: &syn::MacroInput) -> quote::Tokens {
+    let ast = ast.clone();
     let structure = &ast.ident;
-    quote! {
-        impl #structure {
-            fn bongle() -> bool {
-                println!("Test");
-                true
+
+    let slots = match ast.body {
+        Body::Struct(variants) => {
+            match variants {
+                VariantData::Struct(fields) => fields,
+                _ => panic!("Don't derive on unit structs or tuple structs"),
             }
-        }
+        },
+        _ => panic!("Derive on structs only"),
+    };
+    
+    let mut tokens = quote::Tokens::new();
+
+    for field in slots {
+        let ty = field.ty;
+        let ident = field.ident.unwrap();
+        let impl_tokens = quote! {
+            impl #structure {
+                pub fn #ident<'a>(&'a self) -> &'a #ty {
+                    &self.#ident
+                }
+            }
+        };
+
+        impl_tokens.to_tokens(&mut tokens);
     }
+
+    tokens
 }
