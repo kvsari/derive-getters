@@ -3,6 +3,8 @@ name = "derive-getters"
 version = "0.0.1"
 authors = ["Stephan Luther <kvsari@gmail.com>"]
 license = "MIT"
+description = "Simple boilerplate getters generator."
+repository = "https://github.com/kvsari/derive-getters"
 
 [lib]
 name = "derive_getters"
