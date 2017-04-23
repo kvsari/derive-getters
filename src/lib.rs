@@ -28,10 +28,10 @@ fn impl_getters(ast: &syn::MacroInput) -> quote::Tokens {
         Body::Struct(variants) => {
             match variants {
                 VariantData::Struct(fields) => fields,
-                _ => panic!("Don't derive on unit structs or tuple structs"),
+                _ => { return quote::Tokens::new(); },
             }
         },
-        _ => panic!("Derive on structs only"),
+        _ => { return quote::Tokens::new(); },
     };
     
     let mut tokens = quote::Tokens::new();

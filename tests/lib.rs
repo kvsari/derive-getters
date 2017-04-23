@@ -32,3 +32,19 @@ fn many_numbers() {
     assert!(numbers.floating() == &45.5);
     assert!(numbers.byte() == &122);
 }
+
+/// This should do nothing
+#[allow(dead_code)]
+#[derive(Getters)]
+struct UnitStruct;
+
+
+/// Ditto
+#[allow(dead_code)]
+#[derive(Getters)]
+enum AlgebraicDataType {
+    X,
+    Y,
+    Z,
+}
+
