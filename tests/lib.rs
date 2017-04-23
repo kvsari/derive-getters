@@ -48,3 +48,40 @@ enum AlgebraicDataType {
     Z,
 }
 
+#[derive(Getters)]
+struct Textual {
+    author: Option<String>,
+    heading: String,    
+    lines: Vec<String>,    
+}
+
+#[test]
+fn textual_struct() {
+    let article = Textual {
+        author: None,
+        heading: "abcdefg".to_string(),
+        lines: vec!["hijk".to_string(),
+                    "lmno".to_string(),
+                    "pqrs".to_string(),
+                    "tuvw".to_string(),],
+    };
+
+    assert!(article.author() == &None);
+    assert!(article.heading() == "abcdefg");
+    assert!(article.lines().len() == 4);
+    assert!(article.lines()[0] == "hijk");
+    assert!(article.lines()[1] == "lmno");
+    assert!(article.lines()[2] == "pqrs");
+    assert!(article.lines()[3] == "tuvw");
+
+    let book = Textual {
+        author: Some("name".to_string()),
+        heading: "1234".to_string(),
+        lines: vec!["2345".to_string(),
+                    "3456".to_string(),
+                    "4567".to_string(),
+                    "5678".to_string(),],        
+    };
+
+    assert!(book.author() == &Some("name".to_string()));
+}

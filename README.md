@@ -9,7 +9,7 @@ The need for this library came about when I was making various data structures f
 Add to your `Cargo.toml`:
 ```toml
 [dependencies]
-derive-getters = "0.0.1"
+derive-getters = "0.0.2"
 ```
 
 Then put this in your rust project root.
