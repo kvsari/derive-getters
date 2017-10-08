@@ -85,3 +85,22 @@ fn textual_struct() {
 
     assert!(book.author() == &Some("name".to_string()));
 }
+
+/// There shouldn't be any dead code warnings
+#[derive(Getters)]
+struct DeadCode {
+    x: u64,
+    y: u64,
+    z: u64,
+}
+
+#[test]
+fn dead_code_struct() {
+    let dc = DeadCode {
+        x: 1,
+        y: 2,
+        z: 3,
+    };
+
+    assert!(*dc.x() == 1);
+}
