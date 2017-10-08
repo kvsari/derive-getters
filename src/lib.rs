@@ -41,6 +41,7 @@ fn impl_getters(ast: &syn::MacroInput) -> quote::Tokens {
         let ident = field.ident.unwrap();
         let impl_tokens = quote! {
             impl #structure {
+                #[allow(dead_code)]
                 pub fn #ident<'a>(&'a self) -> &'a #ty {
                     &self.#ident
                 }
