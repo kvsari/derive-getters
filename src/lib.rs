@@ -1,7 +1,4 @@
 //! # Derive Getters
-//!
-//! Boilerplate macro that produces methods of the same name as struct fields for a struct.
-//! These methods return lifetimed references to their respective field.
 
 #[macro_use] extern crate quote;
 extern crate proc_macro;
@@ -16,35 +13,47 @@ use syn::punctuated::Punctuated;
 
 static INVALID_STRUCT: &str = "Struct must be a named struct. Not unnamed or unit.";
 static INVALID_VARIANT: &str = "Variant must be a struct. Not an enum or union.";
+static GETTER_PREFIX: &str = "get_";
+
+type TraitSlots = Vec<TraitSlot>;
+type TraitName = Ident;
+type StructName = Ident;
 
 /// For building a list of methods that need to be in the trait.
 struct TraitSlot {
     label: Ident,
+    name: Ident,
     ty: Type,
 }
 
 impl TraitSlot {
-    fn new(label: Ident, ty: Type) -> TraitSlot {
+    fn new(label: Ident, name: Ident, ty: Type) -> TraitSlot {
         TraitSlot {
             label: label,
+            name: name,
             ty: ty,
         }
     }
 }
 
 fn field_to_trait_slot(field: &Field) -> TraitSlot {
-    let label = Ident::from(format!("get_{}", field.ident.as_ref().unwrap()).as_str());
-    TraitSlot::new(label, field.ty.clone())
+    let name = field.ident.as_ref().unwrap().clone();
+    let label = Ident::from(format!("{}{}", GETTER_PREFIX, &name).as_str());
+    TraitSlot::new(label, name, field.ty.clone())
 }
 
 #[proc_macro_derive(Getters)]
 pub fn getters(input: TokenStream) -> TokenStream {
     let ast = syn::parse(input).unwrap();
-    let trait_gen = setup_getters_trait(&ast);
+    let (trait_tokens, struct_name, trait_name, trait_slots) = setup_getters_trait(&ast);
+    let impl_tokens = setup_trait_impl(struct_name, trait_name, trait_slots);
 
-    // TODO
-    // Add the trait_gen and impl_gen together before parsing.
-    trait_gen.into()
+    let mut tokens = quote::Tokens::new();
+    tokens.append_all(trait_tokens.into_iter());
+    tokens.append_all(impl_tokens.into_iter());
+    
+    //println!("Tokens: {}", &tokens);
+    tokens.into()
 }
 
 /// Fetch the slots (aka fields) in a structure. If the passed in ast is not a `struct`, it
@@ -63,7 +72,9 @@ fn get_slots<'a>(
     }
 }
 
-fn setup_getters_trait<'a>(ast: &'a syn::DeriveInput) -> quote::Tokens {
+fn setup_getters_trait<'a>(
+    ast: &'a syn::DeriveInput
+) -> (quote::Tokens, StructName, TraitName, TraitSlots)  {
     let slots: Vec<TraitSlot> = get_slots(&ast.data)
         .unwrap_or_else(|e| panic!("Couldn't autogenerate: {}", e))
         .iter()
@@ -71,21 +82,48 @@ fn setup_getters_trait<'a>(ast: &'a syn::DeriveInput) -> quote::Tokens {
         .collect();
     
     let trait_methods: Vec<quote::Tokens> = slots
-        .into_iter()
+        .iter()
         .map(|slot| {
-            let label = slot.label;
-            let ty = slot.ty;
+            let label = slot.label.clone();
+            let ty = slot.ty.clone();
             quote! {
-                fn #label(&self) -> #ty
+                fn #label(&self) -> &#ty;
             }
         })
         .collect();
 
-    let getter_trait_name = Ident::from(format!("{}Getters", &ast.ident).as_str());
+    let struct_name = ast.ident.clone();
+    let trait_name = Ident::from(format!("{}Getters", &struct_name).as_str());
+
+    let tokens = quote! {
+        pub trait #trait_name {
+            #(#trait_methods)*
+        }
+    };
+
+    (tokens, struct_name, trait_name, slots)
+}
+
+fn setup_trait_impl(
+    struct_name: StructName, trait_name: TraitName, slots: TraitSlots
+) -> quote::Tokens {
+    let trait_methods: Vec<quote::Tokens> = slots
+        .into_iter()
+        .map(|slot| {
+            let label = slot.label.clone();
+            let name = slot.name.clone();
+            let ty = slot.ty.clone();
+            quote! {
+                fn #label(&self) -> &#ty {
+                    &self.#name
+                }
+            }
+        })
+        .collect();
 
     quote! {
-        pub trait #getter_trait_name {
-            #(#trait_methods);*
+        impl #trait_name for #struct_name {
+            #(#trait_methods)*
         }
     }
 }
