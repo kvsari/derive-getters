@@ -1,6 +1,6 @@
 [package]
 name = "derive-getters"
-version = "0.0.3"
+version = "0.0.4"
 authors = ["Stephan Luther <kvsari@gmail.com>"]
 license = "MIT"
 description = "Simple boilerplate getters generator."

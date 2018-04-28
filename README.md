@@ -39,8 +39,8 @@ struct MyCheesyStruct {
 A new trait will be produced called `MyCheesyStructGetters`. This trait will exist in the same module as `MyCheesyStruct`.
 ```rust
 pub trait MyCheesyStructGetters {
-		fn get_x(&self) -> i64;
-		fn get_y(&self) -> i64;
+    fn get_x(&self) -> i64;
+    fn get_y(&self) -> i64;
 }
 ```
 And an impl for the trait will be done for `MyCheesyStruct`.
