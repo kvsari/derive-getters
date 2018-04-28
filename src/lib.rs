@@ -34,6 +34,10 @@
 //!    assert!(number.get_num() == &655);
 //! }
 //! ```
+//!
+//! A new trait, `NumberGetters` will have been generated and implemented for the `Numbers`
+//! struct which contains the `get_num` method. To use the trait in other modules one must
+//! define a `use` for it from the same location the struct resides.
 
 #[macro_use] extern crate quote;
 extern crate proc_macro;
