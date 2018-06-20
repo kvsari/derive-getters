@@ -52,9 +52,11 @@ use syn::punctuated::Punctuated;
 
 static INVALID_STRUCT: &str = "Struct must be a named struct. Not unnamed or unit.";
 static INVALID_VARIANT: &str = "Variant must be a struct. Not an enum or union.";
-static GETTER_PREFIX: &str = "get_";
+//static GETTER_PREFIX: &str = "get_";
+static GETTER_PREFIX: &str = "";
 
 type TraitSlots = Vec<TraitSlot>;
+type StructSlots = Vec<StructSlot>;
 type TraitName = Ident;
 type StructName = Ident;
 
@@ -71,6 +73,29 @@ pub fn getters(input: TokenStream) -> TokenStream {
     
     //println!("Tokens: {}", &tokens);
     tokens.into()
+}
+
+// For building a list of methods that need to be in the struct.
+struct StructSlot {
+    label: Ident,
+    name: Ident,
+    ty: Type,
+}
+
+impl StructSlot {
+    fn new(label: Ident, name: Ident, ty: Type) -> StructSlot {
+        StructSlot {
+            label: label,
+            name: name,
+            ty: ty,
+        }
+    }
+}
+
+fn field_to_struct_slot(field: &Field) -> StructSlot {
+    let name = field.ident.as_ref().unwrap().clone();
+    let label = Ident::from(format!("{}{}", GETTER_PREFIX, &name).as_str());
+    StructSlot::new(label, name, field.ty.clone())
 }
 
 // For building a list of methods that need to be in the trait.
@@ -110,6 +135,38 @@ fn get_slots<'a>(
         },
         _ => Err(INVALID_VARIANT),
     }
+}
+
+fn setup_getters_impl<'a>(
+    ast: &'a syn::DeriveInput
+) -> (quote::Tokens, StructName, StructSlots)  {
+    let slots: Vec<StructSlot> = get_slots(&ast.data)
+        .unwrap_or_else(|e| panic!("Couldn't autogenerate: {}", e))
+        .iter()
+        .map(field_to_struct_slot)
+        .collect();
+    
+    let struct_methods: Vec<quote::Tokens> = slots
+        .iter()
+        .map(|slot| {
+            let label = slot.label.clone();
+            let ty = slot.ty.clone();
+            quote! {
+                fn #label(&self) -> &#ty;
+            }
+        })
+        .collect();
+
+    let struct_name = ast.ident.clone();
+    //let trait_name = Ident::from(format!("{}Getters", &struct_name).as_str());
+
+    let tokens = quote! {
+        pub trait #struct_name {
+            #(#struct_methods)*
+        }
+    };
+
+    (tokens, struct_name, slots)
 }
 
 fn setup_getters_trait<'a>(
