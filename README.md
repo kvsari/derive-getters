@@ -11,7 +11,7 @@ Getters will be generated according to [convention](https://github.com/rust-lang
 Add to your `Cargo.toml`:
 ```toml
 [dependencies]
-derive-getters = "0.0.5"
+derive-getters = "0.0.6"
 ```
 
 Then put this in your rust project root.

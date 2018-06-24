@@ -10,7 +10,7 @@
 //! Add to your project Cargo.toml;
 //! ```toml
 //! [dependencies]
-//! derive-getters = "0.0.5"
+//! derive-getters = "0.0.6"
 //! ```
 //!
 //! In lib.rs or main.rs;
@@ -62,7 +62,6 @@ pub fn getters(input: TokenStream) -> TokenStream {
     let impl_tokens = setup_getters_impl(&ast);
 
     let mut tokens = quote::Tokens::new();
-    println!("TOKENS: {:?}", &tokens);
     tokens.append_all(impl_tokens.into_iter());
     
     tokens.into()
