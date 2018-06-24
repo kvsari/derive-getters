@@ -39,11 +39,11 @@ pub struct MyCheesyStruct {
 A new impl will be produced for `MyCheesyStruct`.
 ```rust
 impl MyCheesyStruct {
-    pub fn get_x(&self) -> i64 {
+    pub fn get_x(&self) -> &i64 {
         &self.x
     }
 
-    pub fn get_y(&self) -> i64 {
+    pub fn get_y(&self) -> &i64 {
         &self.y
     }
 }
