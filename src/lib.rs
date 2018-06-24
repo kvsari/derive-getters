@@ -2,13 +2,15 @@
 //! ===
 //!
 //! Macro for autogenerating getters. Can only be used on named structs. Will generate
-//! getters that will reside in a new trait so as not to pollute the struct namespace.
+//! getters that will reside in the struct namespace through an impl. If the struct already
+//! has a method defined with the same name as one of the fields, this crate will barrel on
+//! and you'll end up with a duplicate method name.
 //!
 //! # Usage
 //! Add to your project Cargo.toml;
 //! ```toml
 //! [dependencies]
-//! derive-getters = "0.0.4"
+//! derive-getters = "0.0.5"
 //! ```
 //!
 //! In lib.rs or main.rs;
@@ -31,13 +33,12 @@
 //! 
 //! fn main() {
 //!    let number = Number { num: 655 };
-//!    assert!(number.get_num() == &655);
+//!    assert!(number.num() == &655);
 //! }
 //! ```
 //!
-//! A new trait, `NumberGetters` will have been generated and implemented for the `Numbers`
-//! struct which contains the `get_num` method. To use the trait in other modules one must
-//! define a `use` for it from the same location the struct resides.
+//! Here, a method called `num()` has been created for the `Number` struct which gives a
+//! reference to the `num` field.
 
 #[macro_use] extern crate quote;
 extern crate proc_macro;
@@ -52,48 +53,42 @@ use syn::punctuated::Punctuated;
 
 static INVALID_STRUCT: &str = "Struct must be a named struct. Not unnamed or unit.";
 static INVALID_VARIANT: &str = "Variant must be a struct. Not an enum or union.";
-static GETTER_PREFIX: &str = "get_";
-
-type TraitSlots = Vec<TraitSlot>;
-type TraitName = Ident;
-type StructName = Ident;
+static GETTER_PREFIX: &str = "";
 
 /// Derive getters into a seperate trait for the named struct.
 #[proc_macro_derive(Getters)]
 pub fn getters(input: TokenStream) -> TokenStream {
     let ast = syn::parse(input).unwrap();
-    let (trait_tokens, struct_name, trait_name, trait_slots) = setup_getters_trait(&ast);
-    let impl_tokens = setup_trait_impl(struct_name, trait_name, trait_slots);
+    let impl_tokens = setup_getters_impl(&ast);
 
     let mut tokens = quote::Tokens::new();
-    tokens.append_all(trait_tokens.into_iter());
+    println!("TOKENS: {:?}", &tokens);
     tokens.append_all(impl_tokens.into_iter());
     
-    //println!("Tokens: {}", &tokens);
     tokens.into()
 }
 
-// For building a list of methods that need to be in the trait.
-struct TraitSlot {
+// For building a list of methods that need to be in the struct.
+struct StructSlot {
     label: Ident,
-    name: Ident,
+    _name: Ident,
     ty: Type,
 }
 
-impl TraitSlot {
-    fn new(label: Ident, name: Ident, ty: Type) -> TraitSlot {
-        TraitSlot {
+impl StructSlot {
+    fn new(label: Ident, name: Ident, ty: Type) -> StructSlot {
+        StructSlot {
             label: label,
-            name: name,
+            _name: name,
             ty: ty,
         }
     }
 }
 
-fn field_to_trait_slot(field: &Field) -> TraitSlot {
+fn field_to_struct_slot(field: &Field) -> StructSlot {
     let name = field.ident.as_ref().unwrap().clone();
     let label = Ident::from(format!("{}{}", GETTER_PREFIX, &name).as_str());
-    TraitSlot::new(label, name, field.ty.clone())
+    StructSlot::new(label, name, field.ty.clone())
 }
 
 // Fetch the slots (aka fields) in a structure. If the passed in ast is not a `struct`, it
@@ -112,58 +107,31 @@ fn get_slots<'a>(
     }
 }
 
-fn setup_getters_trait<'a>(
-    ast: &'a syn::DeriveInput
-) -> (quote::Tokens, StructName, TraitName, TraitSlots)  {
-    let slots: Vec<TraitSlot> = get_slots(&ast.data)
+fn setup_getters_impl<'a>(ast: &'a syn::DeriveInput) -> quote::Tokens {
+    let slots: Vec<StructSlot> = get_slots(&ast.data)
         .unwrap_or_else(|e| panic!("Couldn't autogenerate: {}", e))
         .iter()
-        .map(field_to_trait_slot)
+        .map(field_to_struct_slot)
         .collect();
     
-    let trait_methods: Vec<quote::Tokens> = slots
+    let struct_methods: Vec<quote::Tokens> = slots
         .iter()
         .map(|slot| {
             let label = slot.label.clone();
-            let ty = slot.ty.clone();
-            quote! {
-                fn #label(&self) -> &#ty;
-            }
-        })
-        .collect();
-
-    let struct_name = ast.ident.clone();
-    let trait_name = Ident::from(format!("{}Getters", &struct_name).as_str());
-
-    let tokens = quote! {
-        pub trait #trait_name {
-            #(#trait_methods)*
-        }
-    };
-
-    (tokens, struct_name, trait_name, slots)
-}
-
-fn setup_trait_impl(
-    struct_name: StructName, trait_name: TraitName, slots: TraitSlots
-) -> quote::Tokens {
-    let trait_methods: Vec<quote::Tokens> = slots
-        .into_iter()
-        .map(|slot| {
-            let label = slot.label.clone();
-            let name = slot.name.clone();
             let ty = slot.ty.clone();
             quote! {
                 fn #label(&self) -> &#ty {
-                    &self.#name
+                    &self.#label
                 }
             }
         })
         .collect();
 
+    let struct_name = ast.ident.clone();
+
     quote! {
-        impl #trait_name for #struct_name {
-            #(#trait_methods)*
+        impl #struct_name {
+            #(#struct_methods)*
         }
     }
 }

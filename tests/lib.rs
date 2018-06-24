@@ -10,7 +10,7 @@ struct Number {
 #[test]
 fn number_num() {
     let number = Number { num: 655 };
-    assert!(number.get_num() == &655);
+    assert!(number.num() == &655);
 }
 
 #[derive(Getters)]
@@ -28,9 +28,9 @@ fn many_numbers() {
         byte: 122,
     };
 
-    assert!(numbers.get_integer() == &655);
-    assert!(numbers.get_floating() == &45.5);
-    assert!(numbers.get_byte() == &122);
+    assert!(numbers.integer() == &655);
+    assert!(numbers.floating() == &45.5);
+    assert!(numbers.byte() == &122);
 }
 
 /*
@@ -68,13 +68,13 @@ fn textual_struct() {
                     "tuvw".to_string(),],
     };
 
-    assert!(article.get_author() == &None);
-    assert!(article.get_heading() == "abcdefg");
-    assert!(article.get_lines().len() == 4);
-    assert!(article.get_lines()[0] == "hijk");
-    assert!(article.get_lines()[1] == "lmno");
-    assert!(article.get_lines()[2] == "pqrs");
-    assert!(article.get_lines()[3] == "tuvw");
+    assert!(article.author() == &None);
+    assert!(article.heading() == "abcdefg");
+    assert!(article.lines().len() == 4);
+    assert!(article.lines()[0] == "hijk");
+    assert!(article.lines()[1] == "lmno");
+    assert!(article.lines()[2] == "pqrs");
+    assert!(article.lines()[3] == "tuvw");
 
     let book = Textual {
         author: Some("name".to_string()),
@@ -85,7 +85,7 @@ fn textual_struct() {
                     "5678".to_string(),],        
     };
 
-    assert!(book.get_author() == &Some("name".to_string()));
+    assert!(book.author() == &Some("name".to_string()));
 }
 
 /// There shouldn't be any dead code warnings
@@ -104,5 +104,5 @@ fn dead_code_struct() {
         z: 3,
     };
 
-    assert!(*dc.get_x() == 1);
+    assert!(*dc.x() == 1);
 }
