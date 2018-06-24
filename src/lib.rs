@@ -10,7 +10,7 @@
 //! Add to your project Cargo.toml;
 //! ```toml
 //! [dependencies]
-//! derive-getters = "0.0.6"
+//! derive-getters = "0.0.7"
 //! ```
 //!
 //! In lib.rs or main.rs;
@@ -119,7 +119,7 @@ fn setup_getters_impl<'a>(ast: &'a syn::DeriveInput) -> quote::Tokens {
             let label = slot.label.clone();
             let ty = slot.ty.clone();
             quote! {
-                fn #label(&self) -> &#ty {
+                pub fn #label(&self) -> &#ty {
                     &self.#label
                 }
             }

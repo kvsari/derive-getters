@@ -11,7 +11,7 @@ Getters will be generated according to [convention](https://github.com/rust-lang
 Add to your `Cargo.toml`:
 ```toml
 [dependencies]
-derive-getters = "0.0.6"
+derive-getters = "0.0.7"
 ```
 
 Then put this in your rust project root.
@@ -30,7 +30,7 @@ PS. This way is better. It makes the code run faster.
 When you have a struct you want to automatically derive getters for... Just add the derive at the top like so;
 ```rust
 #[derive(Getters)]
-struct MyCheesyStruct {
+pub struct MyCheesyStruct {
     x: i64,
     y: i64,
 }
@@ -39,11 +39,11 @@ struct MyCheesyStruct {
 A new impl will be produced for `MyCheesyStruct`.
 ```rust
 impl MyCheesyStruct {
-    fn get_x(&self) -> i64 {
+    pub fn get_x(&self) -> i64 {
         &self.x
     }
 
-    fn get_y(&self) -> i64 {
+    pub fn get_y(&self) -> i64 {
         &self.y
     }
 }
