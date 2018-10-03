@@ -41,30 +41,25 @@
 //! reference to the `num` field.
 
 #[macro_use] extern crate quote;
+#[macro_use] extern crate syn;
 extern crate proc_macro;
-extern crate syn;
+extern crate proc_macro2;
 
 use std::convert::From;
+use std::iter::Extend;
 
-use proc_macro::TokenStream;
-
-use syn::{Data, Type, Ident, Fields, Field, token::Comma};
+use syn::{Data, Type, Ident, Fields, Field, token::Comma, DeriveInput};
 use syn::punctuated::Punctuated;
 
 static INVALID_STRUCT: &str = "Struct must be a named struct. Not unnamed or unit.";
 static INVALID_VARIANT: &str = "Variant must be a struct. Not an enum or union.";
-static GETTER_PREFIX: &str = "";
+//static GETTER_PREFIX: &str = "";
 
 /// Derive getters into a seperate trait for the named struct.
 #[proc_macro_derive(Getters)]
-pub fn getters(input: TokenStream) -> TokenStream {
-    let ast = syn::parse(input).unwrap();
-    let impl_tokens = setup_getters_impl(&ast);
-
-    let mut tokens = quote::Tokens::new();
-    tokens.append_all(impl_tokens.into_iter());
-    
-    tokens.into()
+pub fn getters(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let ast = parse_macro_input!(input as DeriveInput);
+    setup_getters_impl(&ast).into()
 }
 
 // For building a list of methods that need to be in the struct.
@@ -86,7 +81,8 @@ impl StructSlot {
 
 fn field_to_struct_slot(field: &Field) -> StructSlot {
     let name = field.ident.as_ref().unwrap().clone();
-    let label = Ident::from(format!("{}{}", GETTER_PREFIX, &name).as_str());
+    //let label = Ident::from(format!("{}{}", GETTER_PREFIX, &name).as_str());
+    let label = name.clone();
     StructSlot::new(label, name, field.ty.clone())
 }
 
@@ -106,25 +102,26 @@ fn get_slots<'a>(
     }
 }
 
-fn setup_getters_impl<'a>(ast: &'a syn::DeriveInput) -> quote::Tokens {
+fn setup_getters_impl<'a>(ast: &'a syn::DeriveInput) -> proc_macro2::TokenStream {    
     let slots: Vec<StructSlot> = get_slots(&ast.data)
         .unwrap_or_else(|e| panic!("Couldn't autogenerate: {}", e))
         .iter()
         .map(field_to_struct_slot)
         .collect();
-    
-    let struct_methods: Vec<quote::Tokens> = slots
+
+    let mut struct_methods = proc_macro2::TokenStream::new();
+    slots
         .iter()
-        .map(|slot| {
+        .for_each(|slot| {
             let label = slot.label.clone();
             let ty = slot.ty.clone();
-            quote! {
+            let tokens = quote! {
                 pub fn #label(&self) -> &#ty {
                     &self.#label
                 }
-            }
-        })
-        .collect();
+            };
+            struct_methods.extend(tokens);
+        });
 
     let struct_name = ast.ident.clone();
 
