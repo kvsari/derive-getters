@@ -88,7 +88,8 @@ fn textual_struct() {
     assert!(book.author() == &Some("name".to_string()));
 }
 
-/// There shouldn't be any dead code warnings
+/// There shouldn't be any dead code warnings on unused methods, only on unused slots which
+/// are not the libraries fault.
 #[derive(Getters)]
 struct DeadCode {
     x: u64,
@@ -106,3 +107,22 @@ fn dead_code_struct() {
 
     assert!(*dc.x() == 1);
 }
+
+//#[derive(Getters)]
+struct Generic01<T> {
+    x: u64,
+    generic: T,
+}
+
+/*
+#[test]
+fn generic01() {
+    let g = Generic01 {
+        x: 20,
+        generic: Some(45f64),
+    };
+
+    assert!(*g.x() == 20);
+    assert!(*g.generic().is_some());
+}
+*/

@@ -11,6 +11,6 @@ name = "derive_getters"
 proc-macro = true
 
 [dependencies]
-quote = "0.6.8"
-syn = "0.15.7"
-proc-macro2 = "0.4.13"
+quote = "0.6.12"
+syn = "0.15.34"
+proc-macro2 = "0.4.30"

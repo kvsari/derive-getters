@@ -53,7 +53,6 @@ use syn::punctuated::Punctuated;
 
 static INVALID_STRUCT: &str = "Struct must be a named struct. Not unnamed or unit.";
 static INVALID_VARIANT: &str = "Variant must be a struct. Not an enum or union.";
-//static GETTER_PREFIX: &str = "";
 
 /// Derive getters into a seperate trait for the named struct.
 #[proc_macro_derive(Getters)]
@@ -102,12 +101,23 @@ fn get_slots<'a>(
     }
 }
 
-fn setup_getters_impl<'a>(ast: &'a syn::DeriveInput) -> proc_macro2::TokenStream {    
+// FIXME: Only one for now. Need to make it handle multiple type params.
+fn get_type_params<'a>(
+    generic: &'a syn::Generics
+) -> Option<&'a syn::TypeParam> {
+    generic
+        .type_params()
+        .next()
+}
+
+fn setup_getters_impl<'a>(ast: &'a syn::DeriveInput) -> proc_macro2::TokenStream {
     let slots: Vec<StructSlot> = get_slots(&ast.data)
         .unwrap_or_else(|e| panic!("Couldn't autogenerate: {}", e))
         .iter()
         .map(field_to_struct_slot)
         .collect();
+
+    let type_param = get_type_params(&ast.generics);
 
     let mut struct_methods = proc_macro2::TokenStream::new();
     slots
@@ -125,9 +135,17 @@ fn setup_getters_impl<'a>(ast: &'a syn::DeriveInput) -> proc_macro2::TokenStream
 
     let struct_name = ast.ident.clone();
 
-    quote! {
-        impl #struct_name {
-            #(#struct_methods)*
+    if let Some(type_param) = type_param {
+        quote! {
+            impl #struct_name #type_param {
+                #(#struct_methods)*
+            }
+        }
+    } else {    
+        quote! {
+            impl #struct_name {
+                #(#struct_methods)*
+            }
         }
     }
 }
