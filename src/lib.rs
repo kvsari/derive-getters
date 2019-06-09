@@ -137,7 +137,7 @@ fn setup_getters_impl<'a>(ast: &'a syn::DeriveInput) -> proc_macro2::TokenStream
 
     if let Some(type_param) = type_param {
         quote! {
-            impl #struct_name #type_param {
+            impl #struct_name <#type_param> {
                 #(#struct_methods)*
             }
         }
