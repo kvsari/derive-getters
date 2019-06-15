@@ -45,7 +45,7 @@ use std::convert::From;
 use std::iter::Extend;
 
 use quote::quote;
-use syn::{Data, Fields, DeriveInput, parse_macro_input, FieldsNamed};
+use syn::{Data, Fields, DeriveInput, parse_macro_input, FieldsNamed, Generics, GenericParam, punctuated::Punctuated, Token, Ident};
 
 static INVALID_STRUCT: &str = "Struct must be a named struct. Not unnamed or unit.";
 static INVALID_VARIANT: &str = "Variant must be a struct. Not an enum or union.";
@@ -79,17 +79,61 @@ fn getters_from_fields<'a>(fields: &'a FieldsNamed) -> Vec<proc_macro2::TokenStr
         .collect()
 }
 
+/// Extract the generics that need to be inserted after the `impl` but before the struct
+/// name. If there are no generics, the `TokenStream` shall be empty.
+fn after_impl_generics<'a>(generics: &'a Generics) -> proc_macro2::TokenStream {
+    // If we have a `<` and `>` there's going to be generics.
+    if generics.lt_token.is_some() && generics.gt_token.is_some() {
+        // Since this is meant to come after the `impl`, we slurp the whole thing.
+        let params = &generics.params;
+        quote!(<#params>)
+    } else {
+        proc_macro2::TokenStream::new()
+    }
+}
+
+/// Same as above but this time we only want the idents as the generics will be inserted
+/// after the struct name on the `impl` line.
+///
+/// ## NOTE
+/// We are only bothering with type parameters! Issue 1. Issue 2 (lifetimes) will come...
+fn after_struct_generics<'a>(generics: &'a Generics) -> proc_macro2::TokenStream {
+    // If we have a `<` and `>` there's going to be generics.
+    if generics.lt_token.is_some() && generics.gt_token.is_some() {
+        // We only want the idents for type parameters.
+        let idents = generics.params
+            .iter()
+            .filter_map(|gp| match gp { // I didn't want to use filter_map! >:(
+                GenericParam::Type(tp) => Some(tp),
+                _ => None,
+            })
+            .fold(Punctuated::new(), |mut idents, tp| -> Punctuated<Ident, Token![,]> {
+                idents.push(tp.ident.clone());
+                idents
+            });
+        quote!(<#idents>)
+    } else {
+        proc_macro2::TokenStream::new()
+    }
+}
+
 /// Derive getters into a seperate trait for the named struct.
 #[proc_macro_derive(Getters)]
 pub fn getters(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
  
     let struct_name = &ast.ident;
+    
     let fields = isolate_named_fields(&ast).unwrap();
     let methods = getters_from_fields(fields);
+    let impl_generics = after_impl_generics(&ast.generics);
+    let struct_generics = after_struct_generics(&ast.generics);
+    let where_clause = &ast.generics.where_clause;
 
     quote!(
-        impl #struct_name {
+        impl #impl_generics #struct_name #struct_generics
+            #where_clause
+        {
             #(#methods)*
         }
     ).into()
