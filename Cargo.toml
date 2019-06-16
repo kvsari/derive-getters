@@ -5,12 +5,21 @@ authors = ["Stephan Luther <kvsari@gmail.com>"]
 license = "MIT"
 description = "Simple boilerplate getters generator."
 repository = "https://github.com/kvsari/derive-getters"
+edition = "2018"
+autotests = false
 
 [lib]
 name = "derive_getters"
 proc-macro = true
 
+[[test]]
+name = "tests"
+path = "tests/lib.rs"
+
 [dependencies]
-quote = "0.6.8"
-syn = "0.15.7"
-proc-macro2 = "0.4.13"
+quote = "0.6"
+syn = "0.15"
+proc-macro2 = "0.4"
+
+[dev-dependencies]
+trybuild = "1.0"

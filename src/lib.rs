@@ -1,12 +1,17 @@
-//! Derive Getters
-//! ===
-//!
+//! # Derive Getters
 //! Macro for autogenerating getters. Can only be used on named structs. Will generate
-//! getters that will reside in the struct namespace through an impl. If the struct already
-//! has a method defined with the same name as one of the fields, this crate will barrel on
-//! and you'll end up with a duplicate method name.
+//! getters that will reside in the struct namespace through an impl.
 //!
-//! # Usage
+//! ## Derives
+//! Only named structs can derive `Getters`. Unit structs, unnamed structs, enums and
+//! unions cannot derive `Getters`.
+//!
+//! ## Methods generated
+//! The getter methods generated shall bear the same name as the struct fields and be
+//! publicly visible. The methods return an immutable reference to the struct field of the
+//! same name. If there is already a method defined with that name there'll be a collision.
+//!
+//! ## Usage
 //! Add to your project Cargo.toml;
 //! ```toml
 //! [dependencies]
@@ -21,113 +26,155 @@
 //! # fn main() { }
 //! ```
 //!
-//! # Example
+//! ### Named Structs
 //! ```
 //! #[macro_use]
 //! extern crate derive_getters;
 //!
 //! #[derive(Getters)]
 //! struct Number {
-//!    num: u64,    
+//!     num: u64,    
 //! }
 //! 
 //! fn main() {
-//!    let number = Number { num: 655 };
-//!    assert!(number.num() == &655);
+//!     let number = Number { num: 655 };
+//!     assert!(number.num() == &655);
 //! }
 //! ```
 //!
 //! Here, a method called `num()` has been created for the `Number` struct which gives a
 //! reference to the `num` field.
+//!
+//! ### Generic Types
+//! This macro can also derive on structs that have simple generic types. For example;
+//! ```
+//! # #[macro_use]
+//! # extern crate derive_getters;
+//! #[derive(Getters)]
+//! struct Generic<T, U> {
+//!     gen_t: T,
+//!     gen_u: U,
+//! }
+//! #
+//! # fn main() { }
+//! ```
+//!
+//! The macro can also handle generic types with trait bounds. For example;
+//! ```
+//! # #[macro_use]
+//! # extern crate derive_getters;
+//! #[derive(Getters)]
+//! struct Generic<T: Clone, U: Copy> {
+//!     gen_t: T,
+//!     gen_u: U,
+//! }
+//! #
+//! # fn main() { }
+//! ```
+//! The trait bounds can also be declared in a `where` clause.
+//!
+//! ## Cannot Do
+//! Lifetimes and const generics aren't handled by this macro nor are they tested.
 
-#[macro_use] extern crate quote;
-#[macro_use] extern crate syn;
 extern crate proc_macro;
-extern crate proc_macro2;
 
 use std::convert::From;
 use std::iter::Extend;
 
-use syn::{Data, Type, Ident, Fields, Field, token::Comma, DeriveInput};
-use syn::punctuated::Punctuated;
+use quote::quote;
+use syn::{Data, Fields, DeriveInput, parse_macro_input, FieldsNamed, Generics, GenericParam, punctuated::Punctuated, Token, Ident};
 
 static INVALID_STRUCT: &str = "Struct must be a named struct. Not unnamed or unit.";
 static INVALID_VARIANT: &str = "Variant must be a struct. Not an enum or union.";
-//static GETTER_PREFIX: &str = "";
 
-/// Derive getters into a seperate trait for the named struct.
+fn isolate_named_fields<'a>(ast: &'a DeriveInput) -> Result<&'a FieldsNamed, &'static str> {
+    match ast.data {
+        Data::Struct(ref structure) => {
+            match structure.fields {
+                Fields::Named(ref fields) => Ok(fields),
+                Fields::Unnamed(_) | Fields::Unit => Err(INVALID_STRUCT),
+            }
+        },
+        Data::Enum(_) | Data::Union(_) => Err(INVALID_VARIANT),
+    }
+}
+
+fn getters_from_fields<'a>(fields: &'a FieldsNamed) -> Vec<proc_macro2::TokenStream> {
+    fields.named
+        .iter()
+        .map(|field| {
+            let field_name = field.ident.as_ref().unwrap(); // Must never fail.
+            let method_name = field_name; // It's a getter method.
+            let return_type = &field.ty;
+
+            quote!(
+                pub fn #method_name(&self) -> &#return_type {
+                    &self.#field_name
+                }
+            )
+        })
+        .collect()
+}
+
+/// Extract the generics that need to be inserted after the `impl` but before the struct
+/// name. If there are no generics, the `TokenStream` shall be empty.
+fn after_impl_generics<'a>(generics: &'a Generics) -> proc_macro2::TokenStream {
+    // If we have a `<` and `>` there's going to be generics.
+    if generics.lt_token.is_some() && generics.gt_token.is_some() {
+        // Since this is meant to come after the `impl`, we slurp the whole thing.
+        let params = &generics.params;
+        quote!(<#params>)
+    } else {
+        proc_macro2::TokenStream::new()
+    }
+}
+
+/// Same as above but this time we only want the idents as the generics will be inserted
+/// after the struct name on the `impl` line.
+///
+/// ## NOTE
+/// We are only bothering with type parameters! Issue 1. Issue 2 (lifetimes) will come...
+fn after_struct_generics<'a>(generics: &'a Generics) -> proc_macro2::TokenStream {
+    // If we have a `<` and `>` there's going to be generics.
+    if generics.lt_token.is_some() && generics.gt_token.is_some() {
+        // We only want the idents for type parameters.
+        let idents = generics.params
+            .iter()
+            .filter_map(|gp| match gp { // I didn't want to use filter_map! >:(
+                GenericParam::Type(tp) => Some(tp),
+                _ => None,
+            })
+            .fold(Punctuated::new(), |mut idents, tp| -> Punctuated<Ident, Token![,]> {
+                idents.push(tp.ident.clone());
+                idents
+            });
+        quote!(<#idents>)
+    } else {
+        proc_macro2::TokenStream::new()
+    }
+}
+
+/// # Derive getters
+/// Generate getter methods for all named struct fields in a seperate struct `impl` block.
+/// Getter methods share the name of the field they're 'getting'. Methods return an
+/// immutable reference to the field.
 #[proc_macro_derive(Getters)]
 pub fn getters(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
-    setup_getters_impl(&ast).into()
-}
+ 
+    let struct_name = &ast.ident;
+    
+    let fields = isolate_named_fields(&ast).unwrap();
+    let methods = getters_from_fields(fields);
+    let impl_generics = after_impl_generics(&ast.generics);
+    let struct_generics = after_struct_generics(&ast.generics);
+    let where_clause = &ast.generics.where_clause;
 
-// For building a list of methods that need to be in the struct.
-struct StructSlot {
-    label: Ident,
-    _name: Ident,
-    ty: Type,
-}
-
-impl StructSlot {
-    fn new(label: Ident, name: Ident, ty: Type) -> StructSlot {
-        StructSlot {
-            label: label,
-            _name: name,
-            ty: ty,
+    quote!(
+        impl #impl_generics #struct_name #struct_generics
+            #where_clause
+        {
+            #(#methods)*
         }
-    }
-}
-
-fn field_to_struct_slot(field: &Field) -> StructSlot {
-    let name = field.ident.as_ref().unwrap().clone();
-    //let label = Ident::from(format!("{}{}", GETTER_PREFIX, &name).as_str());
-    let label = name.clone();
-    StructSlot::new(label, name, field.ty.clone())
-}
-
-// Fetch the slots (aka fields) in a structure. If the passed in ast is not a `struct`, it
-// return `None`.
-fn get_slots<'a>(
-    data: &'a syn::Data
-) -> Result<&'a Punctuated<Field, Comma>, &'static str> {
-    match data {
-        &Data::Struct(ref body) => {
-            match &body.fields {
-                &Fields::Named(ref named) => Ok(&named.named),
-                _ => Err(INVALID_STRUCT),
-            }
-        },
-        _ => Err(INVALID_VARIANT),
-    }
-}
-
-fn setup_getters_impl<'a>(ast: &'a syn::DeriveInput) -> proc_macro2::TokenStream {    
-    let slots: Vec<StructSlot> = get_slots(&ast.data)
-        .unwrap_or_else(|e| panic!("Couldn't autogenerate: {}", e))
-        .iter()
-        .map(field_to_struct_slot)
-        .collect();
-
-    let mut struct_methods = proc_macro2::TokenStream::new();
-    slots
-        .iter()
-        .for_each(|slot| {
-            let label = slot.label.clone();
-            let ty = slot.ty.clone();
-            let tokens = quote! {
-                pub fn #label(&self) -> &#ty {
-                    &self.#label
-                }
-            };
-            struct_methods.extend(tokens);
-        });
-
-    let struct_name = ast.ident.clone();
-
-    quote! {
-        impl #struct_name {
-            #(#struct_methods)*
-        }
-    }
+    ).into()
 }
