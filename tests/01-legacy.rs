@@ -42,10 +42,12 @@ fn textual_struct() {
     let article = Textual {
         author: None,
         heading: "abcdefg".to_string(),
-        lines: vec!["hijk".to_string(),
-                    "lmno".to_string(),
-                    "pqrs".to_string(),
-                    "tuvw".to_string(),],
+        lines: vec![
+            "hijk".to_string(),
+            "lmno".to_string(),
+            "pqrs".to_string(),
+            "tuvw".to_string(),
+        ],
     };
 
     assert!(article.author() == &None);
@@ -59,10 +61,12 @@ fn textual_struct() {
     let book = Textual {
         author: Some("name".to_string()),
         heading: "1234".to_string(),
-        lines: vec!["2345".to_string(),
-                    "3456".to_string(),
-                    "4567".to_string(),
-                    "5678".to_string(),],        
+        lines: vec![
+            "2345".to_string(),
+            "3456".to_string(),
+            "4567".to_string(),
+            "5678".to_string(),
+        ],       
     };
 
     assert!(book.author() == &Some("name".to_string()));

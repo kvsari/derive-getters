@@ -27,12 +27,12 @@
 //!
 //! #[derive(Getters)]
 //! struct Number {
-//!    num: u64,    
+//!     num: u64,    
 //! }
 //! 
 //! fn main() {
-//!    let number = Number { num: 655 };
-//!    assert!(number.num() == &655);
+//!     let number = Number { num: 655 };
+//!     assert!(number.num() == &655);
 //! }
 //! ```
 //!
