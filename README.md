@@ -6,12 +6,17 @@ The need for this library came about when I was making various data structures f
 
 Getters will be generated according to [convention](https://github.com/rust-lang/rfcs/blob/master/text/0344-conventions-galore.md#gettersetter-apis). This means that the generated methods will reside within the struct namespace.
 
+There is no mutability in getters and it isn't planned. There are no setters either nor will there ever be.
+
+## Rust Docs
+[Documentation is here.](https://docs.rs/derive-getters/0.0.8)
+
 ## Installation
 
 Add to your `Cargo.toml`:
 ```toml
 [dependencies]
-derive-getters = "0.0.7"
+derive-getters = "0.0.8"
 ```
 
 Then put this in your rust project root.
@@ -49,8 +54,19 @@ impl MyCheesyStruct {
 }
 ```
 
+This crate can also handle structs with simple generic parameters. Check [docs](https://docs.rs/derive-getters/0.0.8) for further details.
+```rust
+#[derive(Getters)]
+pub struct StructWithGeneric<T> {
+    concrete: f64,
+    generic: T,
+}
+```
+
 ## Caveats
+1. This crate will not create getters for unit structs, tuples or enums. If you try to derive over them the code will chuck a wobbly.
+2. All getter methods return a `&` immutable reference to their field. This means for some types it can get awkward.
+3. Cannot handle lifetimes.
 
-This crate will not yet create getters for unit structs, tuples or enums. If you try to derive over them, the code will just ignore you and do nothing. (Please let me know by filing an issue if this isn't the right way to handle things. Should this crate panic if attempting to derive on an unsupported value?)
-
-Getters for `String` fields should return a `&str`. Right now you have to do an awkward `&my_struct.name()[..]` to shoehorn it into some semblance of a `&str`.
+## Alternatives
+[getset](https://github.com/Hoverbear/getset).

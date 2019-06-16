@@ -15,7 +15,7 @@
 //! Add to your project Cargo.toml;
 //! ```toml
 //! [dependencies]
-//! derive-getters = "0.0.7"
+//! derive-getters = "0.0.8"
 //! ```
 //!
 //! In lib.rs or main.rs;
