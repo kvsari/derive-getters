@@ -1,9 +1,15 @@
 //! # Derive Getters
-//!
 //! Macro for autogenerating getters. Can only be used on named structs. Will generate
-//! getters that will reside in the struct namespace through an impl. If the struct already
-//! has a method defined with the same name as one of the fields, this crate will barrel on
-//! and you'll end up with a duplicate method name.
+//! getters that will reside in the struct namespace through an impl.
+//!
+//! ## Derives
+//! Only named structs can derive `Getters`. Unit structs, unnamed structs, enums and
+//! unions cannot derive `Getters`.
+//!
+//! ## Methods generated
+//! The getter methods generated shall bear the same name as the struct fields and be
+//! publicly visible. The methods return an immutable reference to the struct field of the
+//! same name. If there is already a method defined with that name there'll be a collision.
 //!
 //! ## Usage
 //! Add to your project Cargo.toml;
@@ -20,7 +26,7 @@
 //! # fn main() { }
 //! ```
 //!
-//! ## Example
+//! ### Named Structs
 //! ```
 //! #[macro_use]
 //! extern crate derive_getters;
@@ -38,6 +44,37 @@
 //!
 //! Here, a method called `num()` has been created for the `Number` struct which gives a
 //! reference to the `num` field.
+//!
+//! ### Generic Types
+//! This macro can also derive on structs that have simple generic types. For example;
+//! ```
+//! # #[macro_use]
+//! # extern crate derive_getters;
+//! #[derive(Getters)]
+//! struct Generic<T, U> {
+//!     gen_t: T,
+//!     gen_u: U,
+//! }
+//! #
+//! # fn main() { }
+//! ```
+//!
+//! The macro can also handle generic types with trait bounds. For example;
+//! ```
+//! # #[macro_use]
+//! # extern crate derive_getters;
+//! #[derive(Getters)]
+//! struct Generic<T: Clone, U: Copy> {
+//!     gen_t: T,
+//!     gen_u: U,
+//! }
+//! #
+//! # fn main() { }
+//! ```
+//! The trait bounds can also be declared in a `where` clause.
+//!
+//! ## Cannot Do
+//! Lifetimes and const generics aren't handled by this macro nor are they tested.
 
 extern crate proc_macro;
 
@@ -117,7 +154,10 @@ fn after_struct_generics<'a>(generics: &'a Generics) -> proc_macro2::TokenStream
     }
 }
 
-/// Derive getters into a seperate trait for the named struct.
+/// # Derive getters
+/// Generate getter methods for all named struct fields in a seperate struct `impl` block.
+/// Getter methods share the name of the field they're 'getting'. Methods return an
+/// immutable reference to the field.
 #[proc_macro_derive(Getters)]
 pub fn getters(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let ast = parse_macro_input!(input as DeriveInput);
