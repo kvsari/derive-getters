@@ -19,9 +19,9 @@ name = "tests"
 path = "tests/lib.rs"
 
 [dependencies]
-quote = "0.6"
-syn = "0.15"
-proc-macro2 = "0.4"
+quote = "1.0"
+syn = "1.0"
+proc-macro2 = "1.0"
 
 [dev-dependencies]
 trybuild = "1.0"
