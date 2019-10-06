@@ -4,22 +4,22 @@
 
 Simple boilerplate library for getters.
 
-The need for this library came about when I was making various data structures for JSON to deserialize into. These data structures had many fields in them and weren't going to change once created. Of course one could just use `pub` everywhere but that would enable mutating the fields breaking program semantics.
+The need for this library came about when I was making various data structures for JSON to deserialize into. These data structures had many fields in them and weren't going to change once created. Of course one could just use `pub` everywhere but that would enable mutating the fields which is what this proc macro crate aims to avoid.
 
 Getters will be generated according to [convention](https://github.com/rust-lang/rfcs/blob/master/text/0344-conventions-galore.md#gettersetter-apis). This means that the generated methods will reside within the struct namespace.
 
 ## What this crate won't do
-There is no mutability in getters and it isn't planned. There are no setters either nor will there ever be.
+There are no mutable getters and it's not planned. There are no setters either nor will there ever be.
 
 ## Rust Docs
-[Documentation is here.](https://docs.rs/derive-getters/0.0.8)
+[Documentation is here.](https://docs.rs/derive-getters/0.0.9)
 
 ## Installation
 
 Add to your `Cargo.toml`:
 ```toml
 [dependencies]
-derive-getters = "0.0.8"
+derive-getters = "0.0.9"
 ```
 
 Then import the `Getters` macro in whichever module it's needed (assuming 2018 edition).
@@ -57,7 +57,7 @@ impl MyCheesyStruct {
 }
 ```
 
-This crate can also handle structs with simple generic parameters and lifetime annotations. Check [docs](https://docs.rs/derive-getters/0.0.8) for further details.
+This crate can also handle structs with simple generic parameters and lifetime annotations. Check [docs](https://docs.rs/derive-getters/0.0.9) for further details.
 ```rust
 #[derive(Getters)]
 pub struct StructWithGeneric<'a, T> {
@@ -68,7 +68,7 @@ pub struct StructWithGeneric<'a, T> {
 ```
 
 ## Caveats
-1. This crate will not create getters for unit structs, tuples or enums. Derive `Getters` over them and the code will chuck a wobbly.
+1. Will not work on unit structs, tuples or enums. Derive `Getters` over them and the code will chuck a wobbly.
 2. All getter methods return a `&` immutable reference to their field. This means for some types it can get awkward.
 
 ## Alternatives
