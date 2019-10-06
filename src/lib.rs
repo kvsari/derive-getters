@@ -20,16 +20,14 @@
 //!
 //! In lib.rs or main.rs;
 //! ```
-//! #[macro_use]
-//! extern crate derive_getters;
+//! use derive_getters::Getters;
 //! #
 //! # fn main() { }
 //! ```
 //!
 //! ### Named Structs
 //! ```
-//! #[macro_use]
-//! extern crate derive_getters;
+//! use derive_getters::Getters;
 //!
 //! #[derive(Getters)]
 //! struct Number {
@@ -48,8 +46,7 @@
 //! ### Generic Types
 //! This macro can also derive on structs that have simple generic types. For example;
 //! ```
-//! # #[macro_use]
-//! # extern crate derive_getters;
+//! # use derive_getters::Getters;
 //! #[derive(Getters)]
 //! struct Generic<T, U> {
 //!     gen_t: T,
@@ -61,8 +58,7 @@
 //!
 //! The macro can also handle generic types with trait bounds. For example;
 //! ```
-//! # #[macro_use]
-//! # extern crate derive_getters;
+//! # use derive_getters::Getters;
 //! #[derive(Getters)]
 //! struct Generic<T: Clone, U: Copy> {
 //!     gen_t: T,
@@ -73,12 +69,24 @@
 //! ```
 //! The trait bounds can also be declared in a `where` clause.
 //!
+//! Additionaly, simple lifetimes are OK too;
+//! ```
+//! # use derive_getters::Getters;
+//! #[derive(Getters)]
+//! struct Annotated<'a, 'b, T> {
+//!     stuff: &'a T,
+//!     comp: &'b str,
+//!     num: u64,
+//! }
+//! #
+//! # fn main() { }
+//! ```
+//!
 //! ## Cannot Do
-//! Lifetimes and const generics aren't handled by this macro nor are they tested.
+//! Const generics aren't handled by this macro nor are they tested.
 
 extern crate proc_macro;
 
-use std::collections::HashMap;
 use std::convert::From;
 use std::iter::Extend;
 
@@ -89,11 +97,6 @@ use syn::{
     DeriveInput,
     parse_macro_input,
     FieldsNamed,
-    Generics,
-    GenericParam,
-    punctuated::Punctuated,
-    Token,
-    Ident,
     Type,
 };
 
@@ -112,7 +115,7 @@ fn isolate_named_fields<'a>(ast: &'a DeriveInput) -> Result<&'a FieldsNamed, &'s
     }
 }
 
-fn getters_from_fields<'a>(fields: &'a FieldsNamed) -> Vec<proc_macro2::TokenStream> {
+fn getters_from_fields(fields: &FieldsNamed) -> Vec<proc_macro2::TokenStream> {
     fields.named
         .iter()
         .map(|field| {

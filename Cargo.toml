@@ -9,6 +9,10 @@ documentation = "https://docs.rs/derive-getters/0.0.8/"
 keywords = ["getter", "getters"]
 edition = "2018"
 autotests = false
+readme = "README.md"
+
+[badges]
+travis-ci = { repository = "kvsari/derive-getters" }
 
 [lib]
 name = "derive_getters"
