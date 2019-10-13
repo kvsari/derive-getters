@@ -5,7 +5,6 @@ authors = ["Stephan Luther <kvsari@gmail.com>"]
 license = "MIT"
 description = "Simple boilerplate getters generator."
 repository = "https://github.com/kvsari/derive-getters"
-documentation = "https://docs.rs/derive-getters/0.0.9/"
 keywords = ["getter", "getters"]
 edition = "2018"
 autotests = false
