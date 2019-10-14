@@ -17,7 +17,7 @@
 //! Add to your project Cargo.toml;
 //! ```toml
 //! [dependencies]
-//! derive-getters = "0.0.9"
+//! derive-getters = "0.1.0"
 //! ```
 //!
 //! In lib.rs or main.rs;
@@ -146,7 +146,7 @@ fn parse_attribute_tokens(token_stream: TokenStream) -> FieldAttribute {
     let first_token_tree = token_stream
         .into_iter()
         .next()
-        .expect(&format!("The getter attribute has no tokens. {}", VALID_ATTR));
+        .unwrap_or_else(|| panic!("The getter attribute has no tokens. {}", VALID_ATTR));
 
     // First token tree needs to be a parentheses grouping
     let mut inner_token_iter = match first_token_tree {
@@ -162,7 +162,7 @@ fn parse_attribute_tokens(token_stream: TokenStream) -> FieldAttribute {
 
     let second_token_tree = inner_token_iter
         .next()
-        .expect(&format!("No getter option has been specified. {}", VALID_ATTR));
+        .unwrap_or_else(|| panic!("No getter option has been specified. {}", VALID_ATTR));
 
     let third_token_tree = inner_token_iter.next();
     let fourth_token_tree = inner_token_iter.next();
