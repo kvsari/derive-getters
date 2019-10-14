@@ -1,6 +1,6 @@
 //! # Derive Getters
-//! Macro for autogenerating getters. Can only be used on named structs. Will generate
-//! getters that will reside in the struct namespace through an impl.
+//! A procedural macro for autogenerating getters. It can only be used on named structs.
+//! It will generate getters that will reside in the struct namespace through an impl.
 //!
 //! ## Derives
 //! Only named structs can derive `Getters`. Unit structs, unnamed structs, enums and
@@ -10,6 +10,8 @@
 //! The getter methods generated shall bear the same name as the struct fields and be
 //! publicly visible. The methods return an immutable reference to the struct field of the
 //! same name. If there is already a method defined with that name there'll be a collision.
+//! In these cases one of two attributes can be set to either `skip` or `rename` the getter.
+//! 
 //!
 //! ## Usage
 //! Add to your project Cargo.toml;
@@ -19,14 +21,14 @@
 //! ```
 //!
 //! In lib.rs or main.rs;
-//! ```
+//! ```edition2018
 //! use derive_getters::Getters;
 //! #
 //! # fn main() { }
 //! ```
 //!
 //! ### Named Structs
-//! ```
+//! ```edition2018
 //! use derive_getters::Getters;
 //!
 //! #[derive(Getters)]
@@ -45,7 +47,7 @@
 //!
 //! ### Generic Types
 //! This macro can also derive on structs that have simple generic types. For example;
-//! ```
+//! ```edition2018
 //! # use derive_getters::Getters;
 //! #[derive(Getters)]
 //! struct Generic<T, U> {
@@ -57,7 +59,7 @@
 //! ```
 //!
 //! The macro can also handle generic types with trait bounds. For example;
-//! ```
+//! ```edition2018
 //! # use derive_getters::Getters;
 //! #[derive(Getters)]
 //! struct Generic<T: Clone, U: Copy> {
@@ -70,13 +72,38 @@
 //! The trait bounds can also be declared in a `where` clause.
 //!
 //! Additionaly, simple lifetimes are OK too;
-//! ```
+//! ```edition2018
 //! # use derive_getters::Getters;
 //! #[derive(Getters)]
 //! struct Annotated<'a, 'b, T> {
 //!     stuff: &'a T,
 //!     comp: &'b str,
 //!     num: u64,
+//! }
+//! #
+//! # fn main() { }
+//! ```
+//!
+//! ### Attributes
+//! Getters can be further configured to either skip or rename a getter.
+//!
+//! * #[getter(skip)]
+//! Will skip generating a getter for the field being decorated.
+//!
+//! * #[getter(rename = "name")]
+//! Changes the name of the getter (default is the field name) to "name".
+//!
+//!```edition2018
+//! # use derive_getters::Getters;
+//! #[derive(Getters)]
+//! struct Attributed {
+//!     keep_me: u64,
+//!
+//!     #[getter(skip)]
+//!     skip_me: u64,
+//!
+//!     #[getter(rename = "number")]
+//!     rename_me: u64,
 //! }
 //! #
 //! # fn main() { }
@@ -115,8 +142,6 @@ enum FieldAttribute {
 }
 
 fn parse_attribute_tokens(token_stream: TokenStream) -> FieldAttribute {
-    println!("ATTRIBUTE TOKENS: {:?}", token_stream);
-
     // There must be tokens
     let first_token_tree = token_stream
         .into_iter()
@@ -157,7 +182,6 @@ fn parse_attribute_tokens(token_stream: TokenStream) -> FieldAttribute {
         _ => panic!("No identifier found. {}", VALID_ATTR),
     }
     
-    println!("3TT: {:?}", &fourth_token_tree);
     match third_token_tree {
         Some(TokenTree::Punct(p)) => if p.as_char() != '=' {
             panic!("Punctuation must be '='. {}", VALID_ATTR);
@@ -172,19 +196,15 @@ fn parse_attribute_tokens(token_stream: TokenStream) -> FieldAttribute {
         },
         _ => panic!("Name must be a literal. {}", VALID_ATTR),
     };
-
-    println!("RENAME TO: {}", &name);
     
     if fifth_token_tree.is_some() {
         panic!("No futher tokens must follow the literal in rename. {}", VALID_ATTR);
     }
-    
-    println!("Parsing {} into identifer...", &name);
+   
     let new_name = match parse_str::<Ident>(&name) {
         Ok(nn) => nn,
         Err(e) => panic!("{}", e),
     };
-    println!("Parsed");
     
     FieldAttribute::Rename(new_name)
 }
@@ -213,17 +233,15 @@ fn getters_from_fields(fields: &FieldsNamed) -> Vec<proc_macro2::TokenStream> {
             };
 
             // Check for skip or rename field attributes. We deal with the last attribute.
-            //let maybie_attribute: Option<&proc_macro2::TokenStream> = field.attrs
             let mf_attribute: Option<FieldAttribute> = field.attrs
                 .iter()
                 .fold(None, |m_last, attr| match (attr.path.is_ident("getter"), m_last) {
                     (true, _) => {
                         match attr.style {
                             AttrStyle::Outer => (),
-                            AttrStyle::Inner(_) => {
-                                panic!("The getter attribute is an outer not inner \
-                                        attribute.");
-                            }
+                            AttrStyle::Inner(_) => panic!(
+                                "The getter attribute is an outer not inner attribute."
+                            ),
                         }
 
                         Some(parse_attribute_tokens(attr.tokens.to_owned()))

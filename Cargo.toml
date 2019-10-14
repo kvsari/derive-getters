@@ -28,3 +28,4 @@ proc-macro2 = "1.0"
 
 [dev-dependencies]
 trybuild = "1.0"
+serde = { version = "1.0", features = ["derive"] }

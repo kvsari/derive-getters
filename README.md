@@ -2,9 +2,9 @@
 
 [![Build Status](https://travis-ci.org/kvsari/derive-getters.svg?branch=master)](https://travis-ci.org/kvsari/derive-getters)
 
-Simple boilerplate library for getters.
+Simple procedural macro for generating getters on a named struct.
 
-The need for this library came about when I was making various data structures for JSON to deserialize into. These data structures had many fields in them and weren't going to change once created. Of course one could just use `pub` everywhere but that would enable mutating the fields which is what this proc macro crate aims to avoid.
+The need for this library came about when I was making various data structures for JSON to deserialize into. These data structures had many fields in them to access and they weren't going to change once created. Of course one could just use `pub` everywhere but that would enable mutating the fields which is what this proc macro crate aims to avoid.
 
 Getters will be generated according to [convention](https://github.com/rust-lang/rfcs/blob/master/text/0344-conventions-galore.md#gettersetter-apis). This means that the generated methods will reside within the struct namespace.
 
@@ -47,11 +47,11 @@ pub struct MyCheesyStruct {
 A new impl will be produced for `MyCheesyStruct`.
 ```rust
 impl MyCheesyStruct {
-    pub fn get_x(&self) -> &i64 {
+    pub fn x(&self) -> &i64 {
         &self.x
     }
 
-    pub fn get_y(&self) -> &i64 {
+    pub fn y(&self) -> &i64 {
         &self.y
     }
 }
